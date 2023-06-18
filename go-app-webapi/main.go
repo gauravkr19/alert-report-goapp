@@ -46,7 +46,6 @@ func alertDisp(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	defer rows.Close()
 
 	bks := make([]AlertGroup, 0)
 	for rows.Next() {
@@ -60,7 +59,7 @@ func alertDisp(w http.ResponseWriter, r *http.Request) {
 	if err = rows.Err(); err != nil {
 		panic(err)
 	}
-
+	defer rows.Close()
 	for _, bk := range bks {
 		// fmt.Println(bk.time, bk.receiver, bk.status, bk.externalurl)
 		fmt.Printf("%s, %s, %s, %s, %s, %s\n", bk.id, bk.time, bk.receiver, bk.status, bk.externalurl, bk.groupkey)
