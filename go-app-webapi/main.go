@@ -3,10 +3,8 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"net/http"
-	"text/template"
-
 	_ "github.com/lib/pq"
+	"net/http"
 )
 
 type AlertGroup struct {
@@ -18,17 +16,31 @@ type AlertGroup struct {
 	groupkey    string
 }
 
-func main() {
+var db *sql.DB
+
+func init() {
+	var err error // check this
 	db, err := sql.Open("postgres", "postgres://alertsnitch:alertsnitch@postgresql.monitoring.svc.cluster.local/alertsnitch?sslmode=disable")
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
 
 	if err = db.Ping(); err != nil {
 		panic(err)
 	}
 	fmt.Println("You connected to your database.")
+}
+
+func main() {
+	http.HandleFunc("/", alertDisp)
+	http.ListenAndServe(":8080", nil)
+}
+
+func alertDisp(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, http.StatusText(405), http.StatusMethodNotAllowed)
+		return
+	}
 
 	rows, err := db.Query("SELECT * FROM alertgroup;")
 	if err != nil {

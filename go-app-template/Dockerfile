@@ -12,6 +12,7 @@ ADD . /app
 ## any further commands inside our /app
 ## directory
 WORKDIR /app
+EXPOSE 8080
 ## we run go build to compile the binary
 ## executable of our Go program
 RUN go build -o main .
