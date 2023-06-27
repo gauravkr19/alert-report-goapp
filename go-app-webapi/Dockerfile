@@ -15,7 +15,11 @@ RUN go build -a -installsuffix cgo -o main .
 
 FROM alpine:latest
 
+RUN apk add --update \
+    curl \
+    && rm -rf /var/cache/apk/*
 RUN apk --no-cache add ca-certificates
+
 
 WORKDIR /root/
 

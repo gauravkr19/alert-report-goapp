@@ -7,15 +7,6 @@ import (
 	"net/http"
 )
 
-type AlertGroup struct {
-	id          string
-	time        string
-	receiver    string
-	status      string
-	externalurl string
-	groupkey    string
-}
-
 var db *sql.DB
 
 func init() {
@@ -31,8 +22,17 @@ func init() {
 	fmt.Println("You connected to your database.")
 }
 
+type AlertGroup struct {
+	Id          string
+	Time        string
+	Receiver    string
+	Status      string
+	Externalurl string
+	Groupkey    string
+}
+
 func main() {
-	http.HandleFunc("/", alertDisp)
+	http.HandleFunc("/alerts", alertDisp)
 	http.ListenAndServe(":8080", nil)
 }
 
@@ -42,27 +42,31 @@ func alertDisp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.Query("SELECT * FROM alertgroup;")
+	rows, err := db.Query("SELECT * FROM alertgroup")
 	if err != nil {
-		panic(err)
+		http.Error(w, http.StatusText(500), 500)
+		return
 	}
+	defer rows.Close()
 
 	bks := make([]AlertGroup, 0)
 	for rows.Next() {
 		bk := AlertGroup{}
-		err := rows.Scan(&bk.id, &bk.time, &bk.receiver, &bk.status, &bk.externalurl, &bk.groupkey) // order matters
+		err := rows.Scan(&bk.Id, &bk.Time, &bk.Receiver, &bk.Status, &bk.Externalurl, &bk.Groupkey) // order matters
 		if err != nil {
-			panic(err)
+			http.Error(w, http.StatusText(500), 500)
+			return
 		}
 		bks = append(bks, bk)
 	}
 	if err = rows.Err(); err != nil {
-		panic(err)
+		http.Error(w, http.StatusText(500), 500)
+		return
 	}
-	defer rows.Close()
+
 	for _, bk := range bks {
-		// fmt.Println(bk.time, bk.receiver, bk.status, bk.externalurl)
-		fmt.Printf("%s, %s, %s, %s, %s, %s\n", bk.id, bk.time, bk.receiver, bk.status, bk.externalurl, bk.groupkey)
+		// fmt.Println(bk.Time, bk.Receiver, bk.Status, bk.Externalurl)
+		fmt.Fprintf(w, "%s, %s, %s, %s, %s, %s\n", bk.Id, bk.Time, bk.Receiver, bk.Status, bk.Externalurl, bk.Groupkey)
 	}
 
 }
