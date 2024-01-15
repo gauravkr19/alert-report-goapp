@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Orders</title>
+</head>
+<body>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Order 1</th>
+            <th>Order 2</th>
+            <th>Order 3</th>
+        </tr>
+        {{range .}}
+        <tr>
+            <td>{{.ID}}</td>
+            <td>{{.Username}}</td>
+            <td>{{.Email}}</td>
+            <td>{{getOrder .Orders "order_id_1"}}</td>
+            <td>{{getOrder .Orders "order_id_2"}}</td>
+            <td>{{getOrder .Orders "order_id_3"}}</td>
+        </tr>
+        {{end}}
+    </table>
+</body>
+</html>
