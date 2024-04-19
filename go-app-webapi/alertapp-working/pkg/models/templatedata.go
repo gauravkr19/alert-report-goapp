@@ -3,18 +3,19 @@ package models
 import "time"
 
 type Book struct {
-	Id         int
-	Startsat   *time.Time
-	Endsat     *time.Time
-	Status     string
-	Alertname  string
-	Namespace  string
-	Priority   string
-	Severity   string
-	Deployment string
-	Pod        string
-	Container  string
-	Replicaset string
+	Id          int
+	Fingerprint string
+	Startsat    *time.Time
+	Endsat      *time.Time
+	Status      string
+	Alertname   string
+	Namespace   string
+	Priority    string
+	Severity    string
+	Deployment  string
+	Pod         string
+	Container   string
+	Replicaset  string
 }
 
 type PageData struct {

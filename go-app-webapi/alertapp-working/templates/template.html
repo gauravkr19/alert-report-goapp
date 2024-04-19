@@ -35,7 +35,7 @@
 
 <body>
     {{range .Books}}
-    <p>{{.Id}} - {{ .Startsat }} - {{ .Endsat }} - {{ .Status }} - {{.Alertname}} - {{.Namespace}} -
+    <p>{{.Id}} - {{ .Fingerprint }} - {{ .Startsat }} - {{ .Endsat }} - {{ .Status }} - {{.Alertname}} - {{.Namespace}} -
             {{.Priority}} - {{.Severity}} - {{.Deployment}} - {{.Pod}} - {{.Container}} - {{.Replicaset}}  </p>
     {{end}}
 

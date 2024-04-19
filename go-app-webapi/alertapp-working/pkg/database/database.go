@@ -34,7 +34,7 @@ func FetchData(DB *sql.DB, limit, offset int) ([]models.Book, error) {
 	}
 
 	query := `
-    SELECT a.id, a.startsat, a.endsat, a.status, ct.alertname, ct.namespace, ct.priority, ct.severity, ct.deployment, ct.pod, ct.container, ct.replicaset FROM alert a
+    SELECT a.id, a.fingerprint, a.startsat, a.endsat, a.status, ct.alertname, ct.namespace, ct.priority, ct.severity, ct.deployment, ct.pod, ct.container, ct.replicaset FROM alert a
     LEFT JOIN (
         SELECT * FROM 
         CROSSTAB('select ct.alertid, ct.label, ct.value FROM AlertLabel ct  
@@ -55,9 +55,10 @@ func FetchData(DB *sql.DB, limit, offset int) ([]models.Book, error) {
 
 	for rows.Next() {
 		var id int
-		var alname, nspace, prio, sever, deplo, pod, conta, repli, stat sql.NullString
+		// var fingerprint string
+		var alertname, namespace, priority, severity, deployment, pod, container, replicaset, status, fingerprint sql.NullString
 		var end, start sql.NullTime
-		err := rows.Scan(&id, &start, &end, &stat, &alname, &nspace, &prio, &sever, &deplo, &pod, &conta, &repli)
+		err := rows.Scan(&id, &fingerprint, &start, &end, &status, &alertname, &namespace, &priority, &severity, &deployment, &pod, &container, &replicaset)
 		if err != nil {
 			return nil, err
 		}
@@ -71,18 +72,19 @@ func FetchData(DB *sql.DB, limit, offset int) ([]models.Book, error) {
 		}
 
 		bks = append(bks, models.Book{
-			Id:         id,
-			Startsat:   startsat,
-			Endsat:     endsat,
-			Status:     stat.String,
-			Alertname:  alname.String,
-			Namespace:  nspace.String,
-			Priority:   prio.String,
-			Severity:   sever.String,
-			Deployment: deplo.String,
-			Pod:        pod.String,
-			Container:  conta.String,
-			Replicaset: repli.String,
+			Id:          id,
+			Fingerprint: fingerprint.String,
+			Startsat:    startsat,
+			Endsat:      endsat,
+			Status:      status.String,
+			Alertname:   alertname.String,
+			Namespace:   namespace.String,
+			Priority:    priority.String,
+			Severity:    severity.String,
+			Deployment:  deployment.String,
+			Pod:         pod.String,
+			Container:   container.String,
+			Replicaset:  replicaset.String,
 		})
 
 	}
