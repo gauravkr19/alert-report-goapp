@@ -1,4 +1,4 @@
-module alertapp
+module alertapp-working
 
 go 1.19
 
