@@ -25,3 +25,12 @@ type PageData struct {
 	TotalPages  int
 	QueryParams map[string]string
 }
+
+type ExportData struct {
+	Books []Book
+}
+
+type RequestData struct {
+	StartDate string `json:"startDate"`
+	EndDate   string `json:"endDate"`
+}

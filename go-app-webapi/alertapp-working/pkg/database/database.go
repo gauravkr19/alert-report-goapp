@@ -55,7 +55,70 @@ func FetchData(DB *sql.DB, limit, offset int) ([]models.Book, error) {
 
 	for rows.Next() {
 		var id int
-		// var fingerprint string
+		var alertname, namespace, priority, severity, deployment, pod, container, replicaset, status, fingerprint sql.NullString
+		var end, start sql.NullTime
+		err := rows.Scan(&id, &fingerprint, &start, &end, &status, &alertname, &namespace, &priority, &severity, &deployment, &pod, &container, &replicaset)
+		if err != nil {
+			return nil, err
+		}
+
+		var endsat, startsat *time.Time
+		if end.Valid {
+			endsat = &end.Time
+		}
+		if start.Valid {
+			startsat = &start.Time
+		}
+
+		bks = append(bks, models.Book{
+			Id:          id,
+			Fingerprint: fingerprint.String,
+			Startsat:    startsat,
+			Endsat:      endsat,
+			Status:      status.String,
+			Alertname:   alertname.String,
+			Namespace:   namespace.String,
+			Priority:    priority.String,
+			Severity:    severity.String,
+			Deployment:  deployment.String,
+			Pod:         pod.String,
+			Container:   container.String,
+			Replicaset:  replicaset.String,
+		})
+
+	}
+	return bks, nil
+}
+
+func FetchBooksByTimeRange(DB *sql.DB, startTime, endTime time.Time) ([]models.Book, error) {
+
+	startTimeStr := startTime.Format("2006-01-02 15:04:05.999")
+	endTimeStr := endTime.Format("2006-01-02 15:04:05.999")
+	fmt.Println("DB starttime is", startTimeStr)
+
+	query := `
+	SELECT a.id, a.fingerprint, a.startsat, a.endsat, a.status, ct.alertname, ct.namespace, ct.priority, ct.severity, ct.deployment, ct.pod, ct.container, ct.replicaset
+	FROM alert a
+	LEFT JOIN (
+		SELECT *
+		FROM CROSSTAB(
+			'SELECT ct.alertid, ct.label, ct.value FROM AlertLabel ct ORDER BY ct.alertid',
+			'VALUES (''alertname''), (''namespace''), (''priority''), (''severity''), (''deployment''), (''pod''), (''container''), (''replicaset'')'
+		) AS ct (alertid int, alertname VARCHAR, namespace VARCHAR, priority VARCHAR, severity VARCHAR, deployment VARCHAR, pod VARCHAR, container VARCHAR, replicaset VARCHAR)
+	) AS ct ON ct.alertid = a.id
+	WHERE a.startsat >= $1 AND a.endsat <= $2;	
+	`
+
+	rows, err := DB.Query(query, startTimeStr, endTimeStr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var bks []models.Book
+
+	for rows.Next() {
+		var id int
 		var alertname, namespace, priority, severity, deployment, pod, container, replicaset, status, fingerprint sql.NullString
 		var end, start sql.NullTime
 		err := rows.Scan(&id, &fingerprint, &start, &end, &status, &alertname, &namespace, &priority, &severity, &deployment, &pod, &container, &replicaset)
