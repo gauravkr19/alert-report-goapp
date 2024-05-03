@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Books</title>
+</head>
+<body>
+
+<h1>Export Books</h1>
+
+<div class="container">
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-12">
+            <div class="table-container">
+                <table id="myTable" class="table table-striped table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Fingerprint</th>
+                            <th>Startsat</th>
+                            <th>Endsat</th>
+                            <th>Status</th>
+                            <th>Alertname</th>
+                            <th>Namespace</th>
+                            <th>Priority</th>
+                            <th>Severity</th>
+                            <th>Deployment</th>
+                            <th>Pod</th>
+                            <th>Container</th>
+                            <th>Replicaset</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {{range .Books}}
+                    <tr>
+                        <td>{{.Id}}</td>
+                        <td>{{.Fingerprint}}</td>
+                        <td>{{ formatDate .Startsat}}</td>
+                        <td>{{ formatDate .Endsat}}</td>
+                        <td>{{.Status}}</td>
+                        <td>{{.Alertname}}</td>
+                        <td>{{.Namespace}}</td>
+                        <td>{{.Priority}}</td>
+                        <td>{{.Severity}}</td>
+                        <td>{{.Deployment}}</td>
+                        <td>{{.Pod}}</td>
+                        <td>{{.Container}}</td>
+                        <td>{{.Replicaset}}</td>
+                    </tr>
+                    {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export to Excel button -->
+<button id="exportButton" class="btn btn-primary">Export to Excel</button>
+
+<!-- Display page numbers with hyperlinks -->
+<p>
+    {{ range $i, $p := sequence .TotalPages }}
+        {{ if eq $p $.Page }}
+            <strong>{{ $p }}</strong>
+        {{ else }}
+            <a href="?page={{ $p }}">{{ $p }}</a>
+        {{ end }}
+    {{ end }}
+</p>
+
+<script>
+    // Function to export data to Excel using AJAX
+    function exportToExcel() {
+        // AJAX request to /export endpoint
+        fetch('/export', {
+            method: 'GET'
+        })
+        .then(response => {
+            // Check if response is successful
+            if (!response.ok) {
+                throw new Error('Failed to export data to Excel');
+            }
+            // Return response as blob
+            return response.blob();
+        })
+        .then(blob => {
+            // Create URL object from blob
+            const url = window.URL.createObjectURL(blob);
+            // Create anchor element
+            const a = document.createElement('a');
+            // Set href attribute to URL object
+            a.href = url;
+            // Set download attribute to specify file name
+            a.download = 'exported_books.xlsx';
+            // Append anchor element to document body
+            document.body.appendChild(a);
+            // Click anchor element to trigger download
+            a.click();
+            // Remove anchor element from document body
+            document.body.removeChild(a);
+            // Revoke URL object to release resources
+            window.URL.revokeObjectURL(url);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    // Event listener for export button click
+    document.getElementById('exportButton').addEventListener('click', exportToExcel);
+</script>
+
+</body>
+</html>
