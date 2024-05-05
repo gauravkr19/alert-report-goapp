@@ -107,6 +107,18 @@ func ExportBooks(db *sql.DB) http.HandlerFunc {
 		fmt.Println("Start Date:", startDate)
 		fmt.Println("End Date:", endDate)
 
+		// Return the dates as JSON response
+		data := struct {
+			StartDate string `json:"startDate"`
+			EndDate   string `json:"endDate"`
+		}{
+			StartDate: startDate,
+			EndDate:   endDate,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(data)
+
 		// Extract start and end dates from request data
 		startTime, err := time.Parse("2006-01-02 15:04:05.999", startDate)
 		if err != nil {

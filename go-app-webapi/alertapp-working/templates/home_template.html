@@ -12,8 +12,9 @@
 </head>
 
 <body>
+
     <form action="/export" method="post">
-        <input type="text" name="daterange" id="daterange" />
+        <input type="text" name="daterange" id="daterange" style="width: 300px;" />
         <button type="submit">Export</button>
     </form>
 
@@ -23,12 +24,13 @@
         var end = moment();
 
         function cb(start, end) {
-            $('#daterange').val(start.format('YYYY-MM-DD hh:mm:ss') + ' - ' + end.format('YYYY-MM-DD hh:mm:ss'));
+            $('#daterange').val(start.format('YYYY-MM-DD HH:mm:ss') + ' - ' + end.format('YYYY-MM-DD HH:mm:ss'));
         }
 
     $('#daterange').daterangepicker({
         timePicker: true,
         timePicker24Hour: true,
+        timePickerSeconds: true,
         showDropdowns: true,        
         startDate: moment().startOf('hour'),
         endDate: moment().startOf('hour').add(32, 'hour'),
@@ -43,13 +45,13 @@
             'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
             },
         locale: {
-      format: 'YYYY-MM-DD hh:mm:ss'
-    }
-        }, cb);
-    
+            format: 'YYYY-MM-DD HH:mm:ss'
+        }
+    }, 
+        cb);
         cb(start, end);
-    
     });
+
     </script>
 
 <h2>Output</h2>
