@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -83,8 +84,28 @@ func ExportBooks(db *sql.DB) http.HandlerFunc {
 		// }
 
 		// Parse form data to get the start and end dates
-		startDate := r.FormValue("startDate")
-		endDate := r.FormValue("endDate")
+		// startDate := r.FormValue("startDate")
+		// endDate := r.FormValue("endDate")
+
+		dateRange := r.FormValue("daterange")
+		var err error
+		if err != nil {
+			http.Error(w, "Error parsing form", http.StatusBadRequest)
+			return
+		}
+
+		// Split the daterange value to get the start and end dates
+		dates := strings.Split(dateRange, " - ")
+		if len(dates) != 2 {
+			http.Error(w, "Invalid date range", http.StatusBadRequest)
+			return
+		}
+		startDate := dates[0]
+		endDate := dates[1]
+
+		// Do something with the start and end dates (e.g., save to database, perform calculations)
+		fmt.Println("Start Date:", startDate)
+		fmt.Println("End Date:", endDate)
 
 		// Extract start and end dates from request data
 		startTime, err := time.Parse("2006-01-02 15:04:05.999", startDate)
@@ -126,16 +147,26 @@ func Home(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Check if the request method is POST
 		if r.Method == http.MethodPost {
-			// Parse form data
-			err := r.ParseForm()
+			// Extract the value of the daterange field from the form submission
+			var err error
+			dateRange := r.FormValue("daterange")
 			if err != nil {
 				http.Error(w, "Error parsing form", http.StatusBadRequest)
 				return
 			}
 
-			// Get start and end dates from form data
-			startDate := r.Form.Get("startDate")
-			endDate := r.Form.Get("endDate")
+			// Split the daterange value to get the start and end dates
+			dates := strings.Split(dateRange, " - ")
+			if len(dates) != 2 {
+				http.Error(w, "Invalid date range", http.StatusBadRequest)
+				return
+			}
+			startDate := dates[0]
+			endDate := dates[1]
+
+			// Do something with the start and end dates (e.g., save to database, perform calculations)
+			fmt.Println("Start Date:", startDate)
+			fmt.Println("End Date:", endDate)
 
 			// Return the dates as JSON response
 			data := struct {
