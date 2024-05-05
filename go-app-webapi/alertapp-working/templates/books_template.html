@@ -14,6 +14,7 @@
             margin: 0;
         }
         body {
+            padding: 20px;
             display: flex;
             flex-flow: column nowrap;
             justify-content: center;
@@ -30,39 +31,62 @@
             padding: 1px; /* Add padding to cells for better spacing */
             text-align: center; /* Align text to the left */
             white-space: nowrap;
+            line-height: 1;
         }
         .table td, .table th {
             text-align: center; /* Align text to the left */
             white-space: nowrap;
+            line-height: 1;
         }
         .table td {
             max-width: 200px; /* Adjust the maximum width of cells */
             overflow: hidden;
             text-overflow: ellipsis; /* Add ellipsis for long content */
+            line-height: 1;
         }
         p {
             margin-left: 4rem;
             font-size: 10px;
             color: black;
           }
-        .link {
-            font-size: 6px;
-        }
         .table-container {
             max-height: 450px; /* Adjust the maximum height as needed */
-            overflow: auto;
-        }        
+            overflow-y: auto; /* Enable vertical scrolling */
+            overflow-x: hidden; /* Hide horizontal scrollbar if not needed */
+        }   
+
+        /* Responsive styles */
+        @media screen and (max-width: 768px) {
+            body {
+            padding: 10px; /* Reduce padding for smaller screens */
+            }
+            .table-container {
+            max-height: 250px; /* Adjust maximum height of the table container for smaller screens */
+            }
+            .link-container {
+                display: flex;
+            }
+            .link {
+            margin-right: 10px; /* Adjust spacing between links as needed */
+            margin-left: 5px
+            }
+        }             
     </style>
 </head>
 
 <body>
-<p>Page {{ .Page }} of {{ .TotalPages }}</p>       
-<!-- Display page numbers with hyperlinks -->
+
 
 <div class="container">
     <div class="row justify-content-center mt-4">
+            <div class="link-container">
+                <p class="link"><a href="/books">HOME</a></p>
+                <p class="link"><a href="/home">Select-Date</a></p>  
+                <p>Page {{ .Page }} of {{ .TotalPages }}</p>                            
+            </div>   
         <div class="col-md-12">
             <div class="table-container">
+                <div class="table-responsive">
                 <table id="myTable" class="table table-striped table-bordered">
                     <thead>
                         <tr>
@@ -84,8 +108,8 @@
                     <tbody>
                     {{range .Books}}
                     <tr>
-                        <td>{{.Id}}</td>
-                        <td>{{.Fingerprint}}</td>
+                        <td class="align-top"> {{.Id}}</td>
+                        <td class="align-top"> {{.Fingerprint}}</td>
                         <td>{{ formatDate .Startsat}}</td>
                         <td>{{ formatDate .Endsat}}</td>
                         <td>{{.Status}}</td>
@@ -99,11 +123,8 @@
                         <td>{{.Replicaset}}</td>
                     </tr>
                     {{end}}
-                    </tbody>
+                    </tbody>                
                 </table>
-
-<!-- Insert a Book link -->
-<p class="link"><a href="/books">HOME</a></p>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
 
@@ -111,6 +132,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
 
+</div>
 </div>
 </div>
 </div>
@@ -126,24 +148,9 @@
 
 </div>
 
-<!-- Export to Excel button -->
-<button id="exportButton" class="btn btn-primary">Export to Excel</button>
+</body>
 
-<script>
-    // Function to export data to Excel using AJAX
-    function exportToExcel() {
-        // Select the table
-        var table = document.getElementById("myTable");
-        // Convert the table to Excel workbook
-        var workbook = XLSX.utils.table_to_book(table);
-        // Save the workbook as Excel file
-        XLSX.writeFile(workbook, "table_data.xlsx");
-    }
-    // Event listener for export button click
-    document.getElementById('exportButton').addEventListener('click', exportToExcel);
-</script>
 
 
 </body>
 </html>
-    

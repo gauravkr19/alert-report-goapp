@@ -29,8 +29,3 @@ type PageData struct {
 type ExportData struct {
 	Books []Book
 }
-
-type RequestData struct {
-	StartDate string `json:"startDate"`
-	EndDate   string `json:"endDate"`
-}

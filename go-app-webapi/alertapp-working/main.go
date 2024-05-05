@@ -18,6 +18,7 @@ func main() {
 	// Endpoint for rendering the initial page with the date range picker
 	r.HandleFunc("/home", handlers.Home(database.DB)).Methods("GET")
 	r.HandleFunc("/home", handlers.Home(database.DB)).Methods("POST")
+	r.HandleFunc("/books", handlers.BooksIndex(database.DB)).Methods("GET")
 
 	// Endpoint for handling form submission
 	r.HandleFunc("/export", handlers.ExportBooks(database.DB)).Methods("POST")
