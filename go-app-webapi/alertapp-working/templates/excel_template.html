@@ -50,9 +50,18 @@
             color: black;
           }
         .link {
-            font-size: 6px;
+            font-size: 9px;
+            margin-bottom: 1px; 
+            margin-left: 10px;
+        }
+        .navigation-pane {
+            position: fixed;
+            top: 10%;
+            left: 0px; /* Adjust the left margin as needed */
+
         }
         .table-container {
+            margin-left: 30px;
             max-height: 450px; /* Adjust the maximum height as needed */
             overflow-y: auto; /* Enable vertical scrolling */
             overflow-x: hidden; /* Hide horizontal scrollbar if not needed */
@@ -72,7 +81,13 @@
 </head>
 
 <body>
+<div class="navigation-pane">
+    <p class="link"><a href="/books">HOME</a></p>
+    <p class="link"><a href="/home">Select-Date</a></p>
+    <p class="link"><a href="#" id="exportLink">Export to Excel</a></p>
+</div>
 
+    
 <div class="container">
     <div class="row justify-content-center mt-4">
         <div class="col-md-12">
@@ -122,28 +137,25 @@
 
 </div>
 
-<!-- Export to Excel button -->
-<button id="exportButton" class="btn btn-primary">Export to Excel</button>
+
 
 <script>
     // Function to export data to Excel using AJAX
     function exportToExcel() {
-        // Select the table
+        event.preventDefault(); 
         var table = document.getElementById("myTable");
         // Convert the table to Excel workbook
-        var workbook = XLSX.utils.table_to_book(table);
+        var workbook = XLSX.utils.table_to_book(table, { sheet: "Sheet1", raw: true, dateNF: 'yyyy-mm-dd hh:mm:ss' });
         // Save the workbook as Excel file
         XLSX.writeFile(workbook, "table_data.xlsx");
     }
     // Event listener for export button click
-    document.getElementById('exportButton').addEventListener('click', exportToExcel);
+    document.getElementById('exportLink').addEventListener('click', exportToExcel);
 </script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" crossorigin="anonymous"></script>
 
-<p class="link"><a href="/books">HOME</a></p>
-<p class="link"><a href="/home">Select</a></p>
 </body>
 </html>
     

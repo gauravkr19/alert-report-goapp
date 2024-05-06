@@ -49,12 +49,24 @@
             font-size: 10px;
             color: black;
           }
+        .link {
+            font-size: 9px;
+            margin-bottom: 1px; 
+            margin-left: 10px;
+        }
+        .navigation-pane {
+            position: fixed;
+            top: 10%;
+            left: 0px; /* Adjust the left margin as needed */
+
+        }
         .table-container {
             max-height: 450px; /* Adjust the maximum height as needed */
             overflow-y: auto; /* Enable vertical scrolling */
             overflow-x: hidden; /* Hide horizontal scrollbar if not needed */
         }   
 
+        /* Responsive styles */
         /* Responsive styles */
         @media screen and (max-width: 768px) {
             body {
@@ -63,27 +75,20 @@
             .table-container {
             max-height: 250px; /* Adjust maximum height of the table container for smaller screens */
             }
-            .link-container {
-                display: flex;
-            }
-            .link {
-            margin-right: 10px; /* Adjust spacing between links as needed */
-            margin-left: 5px
-            }
         }             
     </style>
 </head>
 
 <body>
-
+    <div class="navigation-pane">
+        <p class="link"><a href="/books">HOME</a></p>
+        <p class="link"><a href="/home">Select-Date</a></p>
+        <p class="link"><a href="#" id="exportLink">Export to Excel</a></p>
+    </div>
 
 <div class="container">
-    <div class="row justify-content-center mt-4">
-            <div class="link-container">
-                <p class="link"><a href="/books">HOME</a></p>
-                <p class="link"><a href="/home">Select-Date</a></p>  
+    <div class="row justify-content-center mt-4"> 
                 <p>Page {{ .Page }} of {{ .TotalPages }}</p>                            
-            </div>   
         <div class="col-md-12">
             <div class="table-container">
                 <div class="table-responsive">

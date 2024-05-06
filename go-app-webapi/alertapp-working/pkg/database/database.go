@@ -91,10 +91,9 @@ func FetchData(DB *sql.DB, limit, offset int) ([]models.Book, error) {
 }
 
 func FetchBooksByTimeRange(DB *sql.DB, startTime, endTime time.Time) ([]models.Book, error) {
-
+	// TimeZone is added with time.Time, so remove it and convert to string.
 	startTimeStr := startTime.Format("2006-01-02 15:04:05.999")
 	endTimeStr := endTime.Format("2006-01-02 15:04:05.999")
-	fmt.Println("DB starttime is", startTimeStr)
 
 	query := `
 	SELECT a.id, a.fingerprint, a.startsat, a.endsat, a.status, ct.alertname, ct.namespace, ct.priority, ct.severity, ct.deployment, ct.pod, ct.container, ct.replicaset

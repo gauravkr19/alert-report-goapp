@@ -78,15 +78,16 @@ func BooksIndex(db *sql.DB) http.HandlerFunc {
 // ExportBooks is an HTTP handler function to export books data to Excel
 func ExportBooks(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// if r.Method != http.MethodPost {
-		// 	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		// 	return
-		// }
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
 
 		// Parse form data to get the start and end dates
 		// startDate := r.FormValue("startDate")
 		// endDate := r.FormValue("endDate")
 
+		// parse the dates from daterange form.
 		dateRange := r.FormValue("daterange")
 		var err error
 		if err != nil {
@@ -103,22 +104,6 @@ func ExportBooks(db *sql.DB) http.HandlerFunc {
 		startDate := dates[0]
 		endDate := dates[1]
 
-		// Do something with the start and end dates (e.g., save to database, perform calculations)
-		fmt.Println("Start Date:", startDate)
-		fmt.Println("End Date:", endDate)
-
-		// Return the dates as JSON response
-		data := struct {
-			StartDate string `json:"startDate"`
-			EndDate   string `json:"endDate"`
-		}{
-			StartDate: startDate,
-			EndDate:   endDate,
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(data)
-
 		// Extract start and end dates from request data
 		startTime, err := time.Parse("2006-01-02 15:04:05.999", startDate)
 		if err != nil {
@@ -131,8 +116,6 @@ func ExportBooks(db *sql.DB) http.HandlerFunc {
 			http.Error(w, "Invalid end date", http.StatusBadRequest)
 			return
 		}
-
-		fmt.Println("Handler's starttime is", startTime)
 
 		// Fetch data from the database based on the time range
 		bks, err := database.FetchBooksByTimeRange(db, startTime, endTime)
@@ -157,7 +140,7 @@ func ExportBooks(db *sql.DB) http.HandlerFunc {
 
 func Home(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Check if the request method is POST
+		// The if block is NOT executed, as we are calling /export from form action after taking the user input
 		if r.Method == http.MethodPost {
 			// Extract the value of the daterange field from the form submission
 			var err error
@@ -194,7 +177,7 @@ func Home(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		// Render the template to get user input
+		// Render the template to get user input with GET request (non POST request)
 		err := render.RenderTemplate(w, "home_template.html", nil)
 		if err != nil {
 			fmt.Println("Error with rendering")
