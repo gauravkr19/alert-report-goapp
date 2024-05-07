@@ -22,7 +22,6 @@
             height: 100vh;
         }
         table {
-              /* Use 100% width of the container */
             font-size: 7px; /* Increase font size */
             border-collapse: collapse; /* Collapse borders for better appearance */
         }
@@ -58,15 +57,16 @@
             position: fixed;
             top: 10%;
             left: 0px; /* Adjust the left margin as needed */
-
         }
         .table-container {
             max-height: 450px; /* Adjust the maximum height as needed */
             overflow-y: auto; /* Enable vertical scrolling */
             overflow-x: hidden; /* Hide horizontal scrollbar if not needed */
-        }   
+        }  
+        thead tr:first-child th {
+            background-color: #f2f2f217; /* Set your desired background color */
+        } 
 
-        /* Responsive styles */
         /* Responsive styles */
         @media screen and (max-width: 768px) {
             body {
@@ -88,7 +88,7 @@
 
 <div class="container">
     <div class="row justify-content-center mt-4"> 
-                <p>Page {{ .Page }} of {{ .TotalPages }}</p>                            
+    <p>Page {{ .Page }} of {{ .TotalPages }}</p>                            
         <div class="col-md-12">
             <div class="table-container">
                 <div class="table-responsive">
@@ -113,8 +113,8 @@
                     <tbody>
                     {{range .Books}}
                     <tr>
-                        <td class="align-top"> {{.Id}}</td>
-                        <td class="align-top"> {{.Fingerprint}}</td>
+                        <td> {{.Id}}</td>
+                        <td> {{.Fingerprint}}</td>
                         <td>{{ formatDate .Startsat}}</td>
                         <td>{{ formatDate .Endsat}}</td>
                         <td>{{.Status}}</td>
@@ -152,10 +152,6 @@
 </p>
 
 </div>
-
-</body>
-
-
 
 </body>
 </html>
