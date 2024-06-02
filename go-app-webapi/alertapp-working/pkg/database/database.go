@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"time"
 
 	"alertapp-working/pkg/models"
@@ -94,6 +95,7 @@ func FetchBooksByTimeRange(DB *sql.DB, startTime, endTime time.Time) ([]models.B
 	// TimeZone is added with time.Time, so remove it and convert to string.
 	startTimeStr := startTime.Format("2006-01-02 15:04:05.999")
 	endTimeStr := endTime.Format("2006-01-02 15:04:05.999")
+	fmt.Println(startTimeStr)
 
 	query := `
 	SELECT a.id, a.fingerprint, a.startsat, a.endsat, a.status, ct.alertname, ct.namespace, ct.priority, ct.severity, ct.deployment, ct.pod, ct.container, ct.replicaset
@@ -150,6 +152,7 @@ func FetchBooksByTimeRange(DB *sql.DB, startTime, endTime time.Time) ([]models.B
 		})
 
 	}
+	log.Printf("Fetched %d books from database\n", len(bks))
 	return bks, nil
 }
 

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Example</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css">
+</head>
+<body>
+    <input type="text" id="daterange" name="daterange">
+    <button id="showRecordsBtn">Show Records</button>
+    <table id="wsRefresh">
+        <!-- Table structure goes here -->
+    </table>
+
+    <script type="text/javascript">
+        $(function() {
+            var start = moment().startOf('day');
+            var end = moment().endOf('day');
+
+            function cb(start, end) {
+                $('#daterange').val(start.format('YYYY-MM-DD HH:mm:ss') + ' - ' + end.format('YYYY-MM-DD HH:mm:ss'));
+            }
+
+            $('#daterange').daterangepicker({
+                timePicker: true,
+                timePicker24Hour: true,
+                timePickerSeconds: true,
+                showDropdowns: true,
+                startDate: start,
+                endDate: end,
+                ranges: {
+                    'Today': [moment().startOf('day'), moment().endOf('day')],
+                    'Yesterday': [moment().subtract(1, 'days').startOf('day'), moment().subtract(1, 'days').endOf('day')],
+                    'Last 7 Days': [moment().subtract(6, 'days').startOf('day'), moment().endOf('day')],
+                    'Last 30 Days': [moment().subtract(29, 'days').startOf('day'), moment().endOf('day')],
+                    'This Month': [moment().startOf('month'), moment().endOf('month')],
+                    'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+                },
+                locale: {
+                    format: 'YYYY-MM-DD HH:mm:ss'
+                }
+            }, cb);
+
+            cb(start, end);
+        });
+
+        let isTodaySelected = false;
+
+        $('#daterange').on('apply.daterangepicker', function(ev, picker) {
+            isTodaySelected = picker.startDate.isSame(moment().startOf('day'), 'minute') && picker.endDate.isSame(moment().endOf('day'), 'minute');
+        });
+
+        $('#showRecordsBtn').on('click', function() {
+            const dateRange = $('#daterange').val();
+            $.post('/export', { daterange: dateRange }, function(response) {
+                console.log(response);
+                if (isTodaySelected) {
+                    establishWebSocket();
+                }
+            });
+        });
+
+        function establishWebSocket() {
+            const socket = new WebSocket("ws://localhost:8080/ws");
+
+            socket.onopen = function(event) {
+                console.log("WebSocket connection established.");
+            };
+
+            socket.onmessage = function(event) {
+                console.log("Received message from server:", event.data);
+                let data;
+                try {
+                    data = JSON.parse(event.data).data;
+                    if (!Array.isArray(data)) {
+                        throw new Error("Data is not an array");
+                    }
+                } catch (error) {
+                    console.error("Error parsing JSON data:", error);
+                    return;
+                }
+                updateTable(data);
+            };
+
+            socket.onerror = function(error) {
+                console.error("WebSocket error:", error);
+            };
+
+            socket.onclose = function(event) {
+                console.log("WebSocket connection closed.");
+            };
+        }
+
+        function updateTable(data) {
+            const tableBody = document.getElementById("wsRefresh");
+            tableBody.innerHTML = "";
+
+            data.forEach(function(item) {
+                const row = document.createElement("tr");
+                const cell = document.createElement("td");
+                cell.textContent = item;
+                row.appendChild(cell);
+                tableBody.appendChild(row);
+            });
+        }
+    </script>
+</body>
+</html>
