@@ -19,26 +19,18 @@ func main() {
 
 	r := mux.NewRouter()
 
+	go handlers.ListenToWsChannel(database.DB)
+
 	// Endpoint for rendering the initial page with the date range picker
 	r.HandleFunc("/home", handlers.Home(database.DB)).Methods("GET", "POST")
-	// r.HandleFunc("/home", handlers.Home(database.DB)).Methods("POST")
+
 	r.HandleFunc("/books", handlers.BooksIndex(database.DB)).Methods("GET")
 
 	// Endpoint for handling form submission
 	r.HandleFunc("/export", handlers.ExportBooks(database.DB)).Methods("POST")
 
-	// Register as invoked within the ExportBooks handler
-	// r.HandleFunc("/date-range", handlers.WebSocketPostHandler(database.DB)).Methods("POST")
 	r.HandleFunc("/ws", handlers.WebSocketHandler(database.DB)).Methods("GET")
-	// r.HandleFunc("/daterange", handlers.ValidateDateRange(database.DB)).Methods("POST")
-
-	// r.HandleFunc("/ws", handlers.WebSocketHandler(database.DB)).Methods("POST")
 
 	http.ListenAndServe(":8080", r)
 
-	// Register the BooksIndex handler with the DB instance
-	// http.HandleFunc("/books", handlers.BooksIndex(database.DB))
-	// http.HandleFunc("/export", handlers.ExportBooks(database.DB))
-	// http.HandleFunc("/home", handlers.Home(database.DB))
-	// http.ListenAndServe(":8080", nil)
 }

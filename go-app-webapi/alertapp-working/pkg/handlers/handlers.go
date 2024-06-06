@@ -264,8 +264,8 @@ func ListenToWsChannel(db *sql.DB) {
 					DateRange:   msg.DateRange,
 				})
 			}
-			// broadcast <- msg
-			go BroadcastToAll(msg)
+			broadcast <- msg
+			// go BroadcastToAll(msg)
 		}
 	}
 }
