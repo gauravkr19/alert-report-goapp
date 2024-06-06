@@ -20,7 +20,7 @@ type WebSocketMessage struct {
 	MessageType string `json:"messageType"`
 	// Data        []models.Book `json:"data"`
 	Data      interface{} `json:"data"`
-	DateRange string      `json:"dateRange"`
+	DateRange string
 }
 
 // Clients is a map to keep track of connected clients
@@ -29,15 +29,15 @@ var clients = make(map[*websocket.Conn]bool)
 // Broadcast channel to send messages to the clients
 var broadcast = make(chan WebSocketMessage)
 
-// Channel to receive WebSocket messages
-var wsChan = make(chan WebSocketMessage)
-
-// Define upgradeConnection to upgrade the HTTP connection to WebSocket
+// upgradeConnection is the websocket upgrader from gorilla/websockets
 var upgradeConnection = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin:     func(r *http.Request) bool { return true },
 }
+
+// Store the date range in a global variable or a session (for simplicity, using a global variable here)
+var globalDateRange string
 
 func BooksIndex(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -94,7 +94,7 @@ func BooksIndex(db *sql.DB) http.HandlerFunc {
 		}
 
 		// Render the data using the template and write to the http.ResponseWriter
-		err = render.RenderTemplate(w, "books.page.html", pageData)
+		err = render.RenderTemplate(w, "books_template.html", pageData)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -102,10 +102,16 @@ func BooksIndex(db *sql.DB) http.HandlerFunc {
 	}
 }
 
+// isToday - helper func  to determine if the selected date range is "Today"
+// func isToday(startTime, endTime time.Time) bool {
+// 	now := time.Now()
+// 	return startTime.Before(now) && endTime.After(now)
+// }
+
 // parses the daterange from the daterange user input form
 func parseDateRange(r *http.Request) (time.Time, time.Time, error) {
 	dateRange := r.FormValue("daterange")
-
+	globalDateRange = dateRange
 	fmt.Println("parseDateRange-Date Range from Form:", dateRange)
 
 	dates := strings.Split(dateRange, " - ")
@@ -137,18 +143,26 @@ func parseDateRangeFromString(dateRange string) (time.Time, time.Time, error) {
 		return time.Time{}, time.Time{}, fmt.Errorf("invalid date range format")
 	}
 
-	startDate, err := time.Parse("2006-01-02 15:04:05", dates[0])
+	startTime, err := time.Parse("2006-01-02 15:04:05", dates[0])
 	if err != nil {
-		return time.Time{}, time.Time{}, fmt.Errorf("invalid start date format: %v", err)
+		return time.Time{}, time.Time{}, err
 	}
 
-	endDate, err := time.Parse("2006-01-02 15:04:05", dates[1])
+	endTime, err := time.Parse("2006-01-02 15:04:05", dates[1])
 	if err != nil {
-		return time.Time{}, time.Time{}, fmt.Errorf("invalid end date format: %v", err)
+		return time.Time{}, time.Time{}, err
 	}
 
-	return startDate, endDate, nil
+	return startTime, endTime, nil
 }
+
+// func Today(startTime, endTime time.Time) bool {
+// 	now := time.Now()
+// 	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+// 	endOfDay := startOfDay.Add(24 * time.Hour).Add(-time.Second)
+
+// 	return startTime.After(startOfDay) && endTime.Before(endOfDay)
+// }
 
 // ExportBooks is an HTTP handler function to export books data to Excel
 func ExportBooks(db *sql.DB) http.HandlerFunc {
@@ -182,7 +196,7 @@ func ExportBooks(db *sql.DB) http.HandlerFunc {
 			}
 
 			// Render the data using the template to export in XLS
-			err = render.RenderTemplate(w, "excel.page.html", exportData)
+			err = render.RenderTemplate(w, "excel_template.html", exportData)
 			if err != nil {
 				log.Println("Error rendering template:", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -200,103 +214,136 @@ func ExportBooks(db *sql.DB) http.HandlerFunc {
 			// http.Redirect(w, r, fmt.Sprintf("/ws?start=%s&end=%s", startTime.Format(time.RFC3339), endTime.Format(time.RFC3339)), http.StatusSeeOther)
 			return
 		}
+		// request with payload - hand that off to another goroutine that listens to a channel
+		// and does different things depending of payload content.
 	}
 }
 
-// Upgrade connection and call goroutine ListenForWs
+// WebSocketPostHandler for handling the POST request to parse the date range and redirect
+func WebSocketPostHandler(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		dateRange := r.FormValue("daterange")
+		fmt.Println("WebSocketPostHandler - Recd date range:", dateRange)
+		globalDateRange = dateRange
+
+		// Parse the date range from the form data
+		// startTime, endTime, err := parseDateRange(r)
+		// if err != nil {
+		// 	http.Error(w, "Invalid date range", http.StatusBadRequest)
+		// 	return
+		// }
+
+		fmt.Println("WebSocketPostHandler", globalDateRange)
+
+		// Redirect to the WebSocket GET handler with query parameters
+		// http.Redirect(w, r, fmt.Sprintf("/ws?start=%s&end=%s", startTime.Format(time.RFC3339), endTime.Format(time.RFC3339)), http.StatusSeeOther)
+	}
+}
+
+// Function to handle WebSocket connections
 func WebSocketHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Upgrade the connection to a WebSocket
 		conn, err := upgradeConnection.Upgrade(w, r, nil)
 		if err != nil {
 			log.Println("Error upgrading to WebSocket:", err)
 			return
 		}
-		defer conn.Close()
+
+		defer func() {
+			conn.Close()
+			delete(clients, conn)
+		}()
 
 		// Register new client
 		clients[conn] = true
-		log.Println("WebSocket connection established.")
+		var startTime, endTime time.Time
 
-		// Start goroutine to listen for messages from WebSocket, and send to channel
-		go ListenForWs(conn)
+		// Start SendDataToClients function as a Goroutine
+		// go SendDataToClients(db, startTime, endTime)
 
-		// Listen for messages from the broadcast channel
-		for {
-			msg := <-broadcast
-			for client := range clients {
-				err := client.WriteJSON(msg)
-				if err != nil {
-					log.Printf("Error writing to WebSocket client: %v", err)
-					client.Close()
-					delete(clients, client)
+		// Infinite loop to continuously send data to client
+		go func() {
+			for {
+				msg := <-broadcast
+				for client := range clients {
+					err := client.WriteJSON(msg)
+					if err != nil {
+						log.Printf("Error writing to WebSocket client: %v", err)
+						client.Close()
+						delete(clients, client)
+					}
 				}
 			}
-		}
+		}()
 
-	}
-}
-
-// Function to listen for WebSocket messages
-func ListenForWs(conn *websocket.Conn) {
-	for {
-		var msg WebSocketMessage
-		err := conn.ReadJSON(&msg)
-		if err != nil {
-			log.Println("Error reading from WebSocket:", err)
-			delete(clients, conn)
-			break
-		}
-		// Send the received message to the channel
-		wsChan <- msg
-	}
-}
-
-// Function to listen to wsChan channel
-func ListenToWsChannel(db *sql.DB) {
-	for {
-		msg := <-wsChan
-		if msg.MessageType == "dateRange" {
-			startTime, endTime, err := parseDateRangeFromString(msg.DateRange)
+		for {
+			_, message, err := conn.ReadMessage()
 			if err != nil {
-				log.Println("Error parsing date range:", err)
+				log.Printf("Error reading WebSocket message: %v", err)
+				delete(clients, conn)
+				break
+			}
+
+			var msg WebSocketMessage
+			err = json.Unmarshal(message, &msg)
+			if err != nil {
+				log.Printf("Error unmarshalling WebSocket message: %v", err)
 				continue
 			}
-			log.Printf("Received date range - Start: %v, End: %v\n", startTime, endTime)
 
-			// Fetch data and broadcast to all clients
-			data := fetchData(db, startTime, endTime)
+			if msg.MessageType == "init" {
+				startTime, endTime, err = parseDateRangeFromString(msg.DateRange)
+				if err != nil {
+					log.Printf("Error parsing date range: %v", err)
+					continue
+				}
 
-			broadcastToAll(WebSocketMessage{
-				MessageType: "update",
-				Data:        data,
-				DateRange:   msg.DateRange, // Implement fetchData to get data based on date range
-			})
+				go SendDataToClients(db, startTime, endTime)
+			}
 		}
+
 	}
 }
 
-// Function to broadcast messages to all connected clients
-func broadcastToAll(msg WebSocketMessage) {
-	broadcast <- msg
-}
+// Function to send data to WebSocket clients
+func SendDataToClients(db *sql.DB, startTime, endTime time.Time) {
 
-// Implement fetchData to get data based on date range
-func fetchData(db *sql.DB, startTime, endTime time.Time) interface{} {
-	// Fetch data from the database based on the start and end times
-	// Return the fetched data
-	books, err := database.FetchBooksByTimeRange(db, startTime, endTime)
-	if err != nil {
-		log.Printf("Error fetching data: %v", err)
-		return nil
+	fmt.Printf("SendDataToClients:%v \n", startTime)
+
+	// Test data: array of strings
+	// records := []string{"Record 1", "Record 2", "Record 3"}
+
+	// Infinite loop to continuously send data to clients
+	for {
+		records, err := database.FetchBooksByTimeRange(db, startTime, endTime)
+		if err != nil {
+			log.Println("Error fetching records from database:", err)
+			continue
+		}
+
+		// Create WebSocket message
+		message := WebSocketMessage{
+			MessageType: "update",
+			Data:        records,
+		}
+
+		// Send message to all connected clients
+		broadcast <- message
+
+		// Sleep for some time before fetching records again
+		time.Sleep(5 * time.Second)
 	}
-
-	if len(books) == 0 {
-		log.Println("No records found for the given date range")
-		return "NoData"
-	}
-
-	log.Printf("Fetched %d books from database\n", len(books))
-	return books
 }
 
 func Home(db *sql.DB) http.HandlerFunc {
@@ -339,7 +386,7 @@ func Home(db *sql.DB) http.HandlerFunc {
 		}
 
 		// Render the template to get user input with GET request (non POST request)
-		err := render.RenderTemplate(w, "home.page.html", nil)
+		err := render.RenderTemplate(w, "home_template.html", nil)
 		if err != nil {
 			fmt.Println("Error with rendering")
 			http.Error(w, err.Error(), http.StatusInternalServerError)

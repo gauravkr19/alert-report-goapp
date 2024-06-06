@@ -22,7 +22,6 @@ func RenderTemplate(w http.ResponseWriter, tmpl string, data interface{}) error 
 		log.Fatal(err)
 	}
 
-	// render template
 	err = t.Execute(w, data)
 	if err != nil {
 		log.Println(err)
@@ -34,7 +33,7 @@ func CreateTemplateCache() (map[string]*template.Template, error) {
 	myCache := map[string]*template.Template{}
 
 	// get all of the files named *.html from ./templates
-	pages, err := filepath.Glob("./templates/*.page.html")
+	pages, err := filepath.Glob("./templates/*.html")
 	if err != nil {
 		return myCache, err
 	}
