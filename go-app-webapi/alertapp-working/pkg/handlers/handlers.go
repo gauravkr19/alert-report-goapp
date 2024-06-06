@@ -211,49 +211,34 @@ func WebSocketHandler(db *sql.DB) http.HandlerFunc {
 			log.Println("Error upgrading to WebSocket:", err)
 			return
 		}
-		defer conn.Close()
-
-		// Register new client
-		clients[conn] = true
-		log.Println("WebSocket connection established.")
 
 		// Start goroutine to listen for messages from WebSocket, and send to channel
 		go ListenForWs(conn)
-
-		// Listen for messages from the broadcast channel
-		for {
-			msg := <-broadcast
-			for client := range clients {
-				err := client.WriteJSON(msg)
-				if err != nil {
-					log.Printf("Error writing to WebSocket client: %v", err)
-					client.Close()
-					delete(clients, client)
-				}
-			}
-		}
-
 	}
 }
 
-// Function to listen for WebSocket messages
+// func ListenForWs reads incoming messages from the WebSocket connection and sends them to the wsChan channel.
 func ListenForWs(conn *websocket.Conn) {
+	defer conn.Close()
+	clients[conn] = true
+
 	for {
 		var msg WebSocketMessage
 		err := conn.ReadJSON(&msg)
 		if err != nil {
-			log.Println("Error reading from WebSocket:", err)
+			log.Printf("Error reading from WebSocket: %v", err)
 			delete(clients, conn)
 			break
 		}
-		// Send the received message to the channel
 		wsChan <- msg
 	}
 }
 
-// Function to listen to wsChan channel
+// func ListenToWsChannel listens for messages on wsChan.
+// When a message is received, it processes the message (e.g., by querying the database) and constructs a new WebSocketMessage to be broadcasted.
 func ListenToWsChannel(db *sql.DB) {
 	for {
+		// receive daterange from channel (client)
 		msg := <-wsChan
 		if msg.MessageType == "dateRange" {
 			startTime, endTime, err := parseDateRangeFromString(msg.DateRange)
@@ -266,18 +251,38 @@ func ListenToWsChannel(db *sql.DB) {
 			// Fetch data and broadcast to all clients
 			data := fetchData(db, startTime, endTime)
 
-			broadcastToAll(WebSocketMessage{
-				MessageType: "update",
-				Data:        data,
-				DateRange:   msg.DateRange, // Implement fetchData to get data based on date range
-			})
+			if data == nil {
+				BroadcastToAll(WebSocketMessage{
+					MessageType: "noData",
+					Data:        nil,
+					DateRange:   msg.DateRange,
+				})
+			} else {
+				BroadcastToAll(WebSocketMessage{
+					MessageType: "update",
+					Data:        data,
+					DateRange:   msg.DateRange,
+				})
+			}
+			// broadcast <- msg
+			go BroadcastToAll(msg)
 		}
 	}
 }
 
 // Function to broadcast messages to all connected clients
-func broadcastToAll(msg WebSocketMessage) {
-	broadcast <- msg
+func BroadcastToAll(msg WebSocketMessage) {
+	for {
+		msg := <-broadcast
+		for client := range clients {
+			err := client.WriteJSON(msg)
+			if err != nil {
+				log.Printf("Error writing to WebSocket: %v", err)
+				client.Close() // fixes ws to HTTP transition error, Error reading from WebSocket: websocket: close 1001 (going away)
+				delete(clients, client)
+			}
+		}
+	}
 }
 
 // Implement fetchData to get data based on date range
@@ -339,7 +344,7 @@ func Home(db *sql.DB) http.HandlerFunc {
 		}
 
 		// Render the template to get user input with GET request (non POST request)
-		err := render.RenderTemplate(w, "home.page.html", nil)
+		err := render.RenderTemplate(w, "ws.page.html", nil)
 		if err != nil {
 			fmt.Println("Error with rendering")
 			http.Error(w, err.Error(), http.StatusInternalServerError)

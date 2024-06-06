@@ -15,6 +15,7 @@ func main() {
 
 	// Start listening for WebSocket messages
 	go handlers.ListenToWsChannel(database.DB)
+	// go handlers.BroadcastToAll(handlers.WebSocketMessage)
 
 	r := mux.NewRouter()
 

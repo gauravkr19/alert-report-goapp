@@ -3,86 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebSocket Example</title>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css">
+    <title>WebSocket and HTTP Example</title>
+    <link rel="stylesheet" href="path/to/bootstrap.min.css">
+    <script src="path/to/jquery.min.js"></script>
+    <script src="path/to/moment.min.js"></script>
+    <script src="path/to/daterangepicker.min.js"></script>
+    <link rel="stylesheet" href="path/to/daterangepicker.css">
 </head>
 <body>
-    <input type="text" id="daterange" name="daterange">
-    <button id="showRecordsBtn">Show Records</button>
-    <table id="wsRefresh">
-        <!-- Table structure goes here -->
-    </table>
+    <form action="/export" method="post">
+        <input type="text" name="daterange" id="daterange" style="width: 300px;" />
+        <button type="submit">Export to Excel</button>
+    </form>
+
+    <div class="navigation-pane">
+        <p class="link"><a href="/books">HOME</a></p>
+        <p class="link"><a href="/home">Select-Date</a></p>
+        <button id="showRecordsBtn">Show Records</button>
+    </div>
+
+    <div class="container">
+        <div id="table-container" class="row justify-content-center mt-4">
+            <!-- Table or no data message will be inserted here -->
+        </div>
+    </div>
 
     <script type="text/javascript">
-        $(function() {
-            var start = moment().startOf('day');
-            var end = moment().endOf('day');
-
-            function cb(start, end) {
-                $('#daterange').val(start.format('YYYY-MM-DD HH:mm:ss') + ' - ' + end.format('YYYY-MM-DD HH:mm:ss'));
-            }
-
-            $('#daterange').daterangepicker({
-                timePicker: true,
-                timePicker24Hour: true,
-                timePickerSeconds: true,
-                showDropdowns: true,
-                startDate: start,
-                endDate: end,
-                ranges: {
-                    'Today': [moment().startOf('day'), moment().endOf('day')],
-                    'Yesterday': [moment().subtract(1, 'days').startOf('day'), moment().subtract(1, 'days').endOf('day')],
-                    'Last 7 Days': [moment().subtract(6, 'days').startOf('day'), moment().endOf('day')],
-                    'Last 30 Days': [moment().subtract(29, 'days').startOf('day'), moment().endOf('day')],
-                    'This Month': [moment().startOf('month'), moment().endOf('month')],
-                    'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
-                },
-                locale: {
-                    format: 'YYYY-MM-DD HH:mm:ss'
-                }
-            }, cb);
-
-            cb(start, end);
-        });
-
-        let isTodaySelected = false;
-
-        $('#daterange').on('apply.daterangepicker', function(ev, picker) {
-            isTodaySelected = picker.startDate.isSame(moment().startOf('day'), 'minute') && picker.endDate.isSame(moment().endOf('day'), 'minute');
-        });
-
-        $('#showRecordsBtn').on('click', function() {
-            const dateRange = $('#daterange').val();
-            $.post('/export', { daterange: dateRange }, function(response) {
-                console.log(response);
-                if (isTodaySelected) {
-                    establishWebSocket();
-                }
-            });
-        });
+        let socket;
 
         function establishWebSocket() {
-            const socket = new WebSocket("ws://localhost:8080/ws");
+            const websocketUrl = "ws://" + window.location.host + "/ws";
+            socket = new WebSocket(websocketUrl);
 
             socket.onopen = function(event) {
                 console.log("WebSocket connection established.");
+                const dateRange = $('#daterange').val();
+                socket.send(JSON.stringify({
+                    messageType: "dateRange",
+                    dateRange: dateRange
+                }));
             };
 
             socket.onmessage = function(event) {
                 console.log("Received message from server:", event.data);
-                let data;
                 try {
-                    data = JSON.parse(event.data).data;
-                    if (!Array.isArray(data)) {
-                        throw new Error("Data is not an array");
-                    }
-                } catch (error) {
-                    console.error("Error parsing JSON data:", error);
-                    return;
+                    const data = JSON.parse(event.data);
+                    updateTable(data.data); // Access the data field from the received object
+                } catch (e) {
+                    console.error("Error parsing JSON data:", e);
                 }
-                updateTable(data);
             };
 
             socket.onerror = function(error) {
@@ -95,17 +64,86 @@
         }
 
         function updateTable(data) {
-            const tableBody = document.getElementById("wsRefresh");
-            tableBody.innerHTML = "";
+            const tableContainer = document.getElementById("table-container");
+            tableContainer.innerHTML = ""; // Clear the existing content
 
-            data.forEach(function(item) {
-                const row = document.createElement("tr");
-                const cell = document.createElement("td");
-                cell.textContent = item;
-                row.appendChild(cell);
-                tableBody.appendChild(row);
-            });
+            if (data === "NoData") {
+                const noDataMessage = document.createElement("div");
+                noDataMessage.textContent = "No records found for the selected date range.";
+                tableContainer.appendChild(noDataMessage);
+            } else if (Array.isArray(data)) {
+                const table = document.createElement("table");
+                table.id = "myTable";
+                table.className = "table table-striped table-bordered";
+
+                const thead = document.createElement("thead");
+                const theadRow = document.createElement("tr");
+
+                const headers = ["Id", "Fingerprint", "Startsat", "Endsat", "Status", "Alertname", "Namespace", "Priority", "Severity", "Deployment", "Pod", "Container", "Replicaset"];
+                headers.forEach(header => {
+                    const th = document.createElement("th");
+                    th.textContent = header;
+                    theadRow.appendChild(th);
+                });
+                thead.appendChild(theadRow);
+                table.appendChild(thead);
+
+                const tbody = document.createElement("tbody");
+                tbody.id = "wsRefresh";
+
+                data.forEach(rowData => {
+                    const row = document.createElement("tr");
+                    headers.forEach(header => {
+                        const cell = document.createElement("td");
+                        cell.textContent = rowData[header.toLowerCase()];
+                        row.appendChild(cell);
+                    });
+                    tbody.appendChild(row);
+                });
+
+                table.appendChild(tbody);
+                tableContainer.appendChild(table);
+            } else {
+                console.error("Data is not an array or 'NoData':", data);
+            }
         }
+
+        $(function() {
+            var start = moment().subtract(29, 'days');
+            var end = moment();
+
+            function cb(start, end) {
+                $('#daterange').val(start.format('YYYY-MM-DD HH:mm:ss') + ' - ' + end.format('YYYY-MM-DD HH:mm:ss'));
+            }
+
+            $('#daterange').daterangepicker({
+                timePicker: true,
+                timePicker24Hour: true,
+                startDate: start,
+                endDate: end,
+                locale: {
+                    format: 'YYYY-MM-DD HH:mm:ss'
+                }
+            }, cb);
+
+            cb(start, end);
+
+            $('#showRecordsBtn').on('click', function() {
+                console.log("Show Records button clicked.");
+                console.log("isTodaySelected: " + window.isTodaySelected);
+                if (window.isTodaySelected) {
+                    establishWebSocket();
+                } else {
+                    console.log("Please select 'Today' to show records.");
+                }
+            });
+
+            window.addEventListener('beforeunload', function() {
+                if (socket) {
+                    socket.close();
+                }
+            });
+        });
     </script>
 </body>
 </html>
