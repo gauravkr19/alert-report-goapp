@@ -212,6 +212,10 @@ func WebSocketHandler(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
+		// defer conn.Close()
+		// clients[conn] = true
+		log.Printf("WebSocket connection established.")
+
 		// Start goroutine to listen for messages from WebSocket, and send to channel
 		go ListenForWs(conn)
 	}
@@ -265,7 +269,6 @@ func ListenToWsChannel(db *sql.DB) {
 				})
 			}
 			broadcast <- msg
-			// go BroadcastToAll(msg)
 		}
 	}
 }
@@ -278,7 +281,7 @@ func BroadcastToAll(msg WebSocketMessage) {
 			err := client.WriteJSON(msg)
 			if err != nil {
 				log.Printf("Error writing to WebSocket: %v", err)
-				client.Close() // fixes ws to HTTP transition error, Error reading from WebSocket: websocket: close 1001 (going away)
+				client.Close()
 				delete(clients, client)
 			}
 		}
